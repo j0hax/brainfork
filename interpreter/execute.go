@@ -12,23 +12,23 @@ func (i *Interpreter) execute(program []byte, jumps map[int]int, input <-chan by
 		b := program[i.inPtr]
 		switch b {
 		case '>':
-			i.dtPtr++
+			i.tape.Right()
 		case '<':
-			i.dtPtr--
+			i.tape.Left()
 		case '+':
-			i.mem[i.dtPtr]++
+			i.tape.Add()
 		case '-':
-			i.mem[i.dtPtr]--
+			i.tape.Sub()
 		case '.':
-			output <- i.mem[i.dtPtr]
+			output <- i.tape.Read()
 		case ',':
-			i.mem[i.dtPtr] = <-input
+			i.tape.Write(<-input)
 		case '[':
-			if i.mem[i.dtPtr] == 0 {
+			if i.tape.Zero() {
 				i.inPtr = jumps[i.inPtr]
 			}
 		case ']':
-			if i.mem[i.dtPtr] != 0 {
+			if !i.tape.Zero() {
 				i.inPtr = jumps[i.inPtr]
 			}
 		case 'Y':
@@ -39,7 +39,7 @@ func (i *Interpreter) execute(program []byte, jumps map[int]int, input <-chan by
 				child.execute(program, jumps, input, output)
 			}()
 
-			i.mem[i.dtPtr] = 0
+			i.tape.Write(0)
 		}
 
 		i.inPtr++

@@ -3,15 +3,14 @@ package interpreter
 import (
 	"bufio"
 	"io"
-	"slices"
 	"sync"
 )
 
 type Interpreter struct {
-	input        *bufio.Reader
-	output       *bufio.Writer
-	mem          []byte
-	dtPtr, inPtr int
+	input  *bufio.Reader
+	output *bufio.Writer
+	tape   *Tape
+	inPtr  int
 }
 
 // NewInterpreter creates a new Brainfork interpreter, which reads input from r
@@ -20,8 +19,7 @@ func NewInterpreter(r io.Reader, w io.Writer) *Interpreter {
 	return &Interpreter{
 		input:  bufio.NewReader(r),
 		output: bufio.NewWriter(w),
-		mem:    make([]byte, 30000),
-		dtPtr:  0,
+		tape:   NewTape(),
 		inPtr:  0,
 	}
 }
@@ -47,19 +45,15 @@ func compileJumpTable(code []byte) map[int]int {
 // pointers, and returns a new Interpreter, which can then be executed
 // concurrently.
 func (i *Interpreter) Fork() *Interpreter {
-	newDtPtr := i.inPtr + 1
-	newInPtr := i.dtPtr + 1
-
-	// Copy the interpreter and start it
-	newMem := slices.Clone(i.mem)
-	newMem[newDtPtr] = 1
+	newMem := i.tape.Clone()
+	newMem.Right()
+	newMem.Write(1)
 
 	return &Interpreter{
 		input:  i.input,
 		output: i.output,
-		mem:    newMem,
-		dtPtr:  newDtPtr,
-		inPtr:  newInPtr,
+		tape:   newMem,
+		inPtr:  i.inPtr + 1,
 	}
 }
 
